@@ -23,7 +23,11 @@ from src.energyplus_wrapper import (
     validate_control_action as validate_phase1_control_action,
 )
 from src.mcp_client import Phase2MCPClient
-from src.phase2_agent import AgentCycleResult, Phase2AgentOrchestrator
+from src.phase2_agent import (
+    AgentCycleResult,
+    AgentLoopLimits,
+    Phase2AgentOrchestrator,
+)
 from src.phase2_contracts import (
     CarbonIntensityCategory,
     CarbonIntensitySample,
@@ -685,7 +689,10 @@ class LiveScriptedAgentController:
                 client_factory=lambda: Phase2MCPClient(
                     parameters,
                     allow_read_reconnect=False,
-                )
+                ),
+                limits=AgentLoopLimits(
+                    provider_response_timeout_seconds=30.0
+                ),
             )
             return await orchestrator.run_cycle(
                 provider,

@@ -15,6 +15,7 @@ import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
 from pathlib import Path
+from collections.abc import Callable, Mapping
 from typing import Any
 
 import anyio
@@ -32,7 +33,7 @@ from src.scripted_provider import (
 
 
 DEFAULT_OLLAMA_BASE_URL = "http://127.0.0.1:11434"
-DEFAULT_TIMEOUT_SECONDS = 20.0
+DEFAULT_TIMEOUT_SECONDS = 30.0
 DEFAULT_CONTEXT_TOKENS = 4096
 _DEFAULT_CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "phase2.yaml"
 _REASONING_TAGS = ("thermal_comfort", "energy_reduction", "safety")
@@ -74,9 +75,13 @@ class ProviderCallEvidence:
     """One provider round's latency and selected tool-call summary."""
 
     round_number: int
-    tool_name: str
+    tool_name: str | None
     latency_seconds: float
     argument_keys: tuple[str, ...]
+    response_type: str = "structured_tool_call"
+    validation_code: str = "accepted_tool_call"
+    correction_attempt: int = 0
+    argument_summary: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass(slots=True)
@@ -85,6 +90,7 @@ class OllamaToolProvider:
 
     config: OllamaProviderConfig
     scenario_directive: str = ""
+    diagnostic_sink: Callable[[Mapping[str, Any]], None] | None = None
     name: ScriptIdentifier = "ollama"
     _call_sequence: int = field(default=0, init=False)
     _started: bool = field(default=False, init=False)
@@ -99,6 +105,7 @@ class OllamaToolProvider:
         config_path: str | Path = _DEFAULT_CONFIG_PATH,
         *,
         scenario_directive: str = "",
+        diagnostic_sink: Callable[[Mapping[str, Any]], None] | None = None,
     ) -> "OllamaToolProvider":
         """Load `.env`, resolve config placeholders, and validate startup."""
 
@@ -106,6 +113,7 @@ class OllamaToolProvider:
         provider = cls(
             config=config,
             scenario_directive=scenario_directive,
+            diagnostic_sink=diagnostic_sink,
             name=_provider_name_for_model(config.model),
         )
         provider.validate_startup()
@@ -169,11 +177,44 @@ class OllamaToolProvider:
                 observation,
             )
         except TimeoutError as exc:
+            self._record_evidence(
+                observation,
+                started=started,
+                tool_name=None,
+                argument_keys=(),
+                response_type="provider_timeout",
+                validation_code="provider_timeout",
+                argument_summary={},
+            )
             raise OllamaProviderTimeoutError(
                 "Ollama request timed out"
             ) from exc
+        except Exception as exc:
+            self._record_evidence(
+                observation,
+                started=started,
+                tool_name=None,
+                argument_keys=(),
+                response_type="provider_error",
+                validation_code=_exception_code(exc),
+                argument_summary={},
+            )
+            raise
         latency = time.perf_counter() - started
-        call = self._extract_tool_call(response, observation)
+        response_type = _model_response_type(response)
+        try:
+            call = self._extract_tool_call(response, observation)
+        except OllamaProviderResponseError as exc:
+            self._record_evidence(
+                observation,
+                started=started,
+                tool_name=None,
+                argument_keys=(),
+                response_type=response_type,
+                validation_code=_response_error_code(exc),
+                argument_summary={},
+            )
+            raise
         self._call_sequence += 1
         stable_call = ScriptedToolCall(
             call_id=(
@@ -183,28 +224,103 @@ class OllamaToolProvider:
             tool_name=call["tool_name"],
             arguments=call["arguments"],
         )
-        self._evidence.append(
-            ProviderCallEvidence(
-                round_number=observation.round_number,
-                tool_name=stable_call.tool_name,
-                latency_seconds=latency,
-                argument_keys=tuple(sorted(stable_call.arguments)),
-            )
+        self._record_evidence(
+            observation,
+            started=started,
+            tool_name=stable_call.tool_name,
+            argument_keys=tuple(sorted(stable_call.arguments)),
+            response_type=response_type,
+            validation_code="accepted_tool_call",
+            latency_seconds=latency,
+            argument_summary=_safe_argument_summary(
+                stable_call.tool_name,
+                stable_call.arguments,
+            ),
         )
         return stable_call
 
+    def _record_evidence(
+        self,
+        observation: ProviderObservation,
+        *,
+        started: float,
+        tool_name: str | None,
+        argument_keys: tuple[str, ...],
+        response_type: str,
+        validation_code: str,
+        latency_seconds: float | None = None,
+        argument_summary: dict[str, Any],
+    ) -> None:
+        evidence = ProviderCallEvidence(
+            round_number=observation.round_number,
+            tool_name=tool_name,
+            latency_seconds=(
+                time.perf_counter() - started
+                if latency_seconds is None
+                else latency_seconds
+            ),
+            argument_keys=argument_keys,
+            response_type=response_type,
+            validation_code=validation_code,
+            correction_attempt=_correction_attempt(observation),
+            argument_summary=argument_summary,
+        )
+        self._evidence.append(evidence)
+        if self.diagnostic_sink is not None:
+            diagnostic = {
+                "event": "ollama_provider_round",
+                "round": evidence.round_number,
+                "model_response_type": evidence.response_type,
+                "mcp_tool_requested": evidence.tool_name,
+                "validation_code": evidence.validation_code,
+                "correction_attempt": evidence.correction_attempt,
+                "fallback_used": False,
+                "latency_seconds": round(evidence.latency_seconds, 3),
+                "argument_summary": evidence.argument_summary,
+            }
+            try:
+                self.diagnostic_sink(diagnostic)
+            except Exception:
+                # Diagnostics must never change control behavior.
+                pass
+
     def _chat_once(self, observation: ProviderObservation) -> dict[str, Any]:
+        next_tool = _next_required_tool(observation)
         payload = {
             "model": self.config.model,
             "stream": False,
-            "tools": _tool_specs(observation.discovered_tool_names),
+            "keep_alive": "15m",
+            # Expose only the tool allowed at this mandatory sequence step.
+            # This keeps the local 3B-model request small and prevents skips.
+            "tools": _tool_specs((next_tool,)),
             "messages": [
-                {"role": "system", "content": _system_prompt()},
+                {"role": "system", "content": _system_prompt(next_tool)},
                 {"role": "user", "content": _observation_prompt(observation, self.scenario_directive)},
             ],
             "options": {
                 "temperature": 0,
-                "num_ctx": self.config.context_tokens,
+                "num_ctx": min(
+                    self.config.context_tokens,
+                    1024
+                    if next_tool
+                    in {
+                        "read_sensor_data",
+                        "get_grid_carbon_intensity",
+                        "log_reasoning",
+                    }
+                    else 1024,
+                ),
+                "num_predict": (
+                    96
+                    if next_tool
+                    in {
+                        "read_sensor_data",
+                        "get_grid_carbon_intensity",
+                    }
+                    else 128
+                    if next_tool == "log_reasoning"
+                    else 128
+                ),
             },
         }
         return self._request_json("POST", "/api/chat", payload)
@@ -343,6 +459,10 @@ def _normalize_call(
 ) -> dict[str, Any]:
     if not isinstance(raw_name, str) or raw_name not in observation.discovered_tool_names:
         raise OllamaProviderResponseError("provider proposed an unknown tool")
+    if raw_name != _next_required_tool(observation):
+        raise OllamaProviderResponseError(
+            "provider proposed an out-of-sequence tool"
+        )
     if isinstance(raw_arguments, str):
         try:
             raw_arguments = json.loads(raw_arguments or "{}")
@@ -354,7 +474,166 @@ def _normalize_call(
         raise OllamaProviderResponseError(
             "tool-call arguments must be a JSON object"
         )
-    return {"tool_name": raw_name, "arguments": raw_arguments}
+    return {
+        "tool_name": raw_name,
+        "arguments": _normalize_argument_format(raw_name, raw_arguments),
+    }
+
+
+def _normalize_argument_format(
+    tool_name: str,
+    raw_arguments: Mapping[str, Any],
+) -> dict[str, Any]:
+    """Normalize Ollama's JSON-encoded nested values without changing them."""
+
+    arguments = dict(raw_arguments)
+    if tool_name == "read_sensor_data":
+        arguments["history_steps"] = _normalize_integer(
+            arguments.get("history_steps")
+        )
+    elif tool_name == "get_grid_carbon_intensity":
+        arguments["forecast_steps"] = _normalize_integer(
+            arguments.get("forecast_steps")
+        )
+    elif tool_name == "log_reasoning":
+        arguments["objective_tags"] = _normalize_json_list(
+            arguments.get("objective_tags")
+        )
+        arguments["confidence"] = _normalize_number(
+            arguments.get("confidence")
+        )
+    elif tool_name == "set_control_action":
+        arguments["hold_steps"] = _normalize_integer(
+            arguments.get("hold_steps")
+        )
+        commands = _normalize_json_value(arguments.get("commands"))
+        if (
+            isinstance(commands, Mapping)
+            and set(commands) == {"all_zones"}
+            and isinstance(commands["all_zones"], Mapping)
+        ):
+            template = dict(commands["all_zones"])
+            commands = [
+                {"zone_id": zone_id, **template}
+                for zone_id in PHASE1_ZONE_IDS
+            ]
+        if isinstance(commands, list):
+            normalized_commands: list[Any] = []
+            for command in commands:
+                if not isinstance(command, Mapping):
+                    normalized_commands.append(command)
+                    continue
+                normalized = dict(command)
+                for field_name in ("heating_c", "cooling_c"):
+                    if field_name in normalized:
+                        normalized[field_name] = _normalize_number(
+                            normalized[field_name]
+                        )
+                normalized_commands.append(normalized)
+            arguments["commands"] = normalized_commands
+        else:
+            arguments["commands"] = commands
+    return arguments
+
+
+def _normalize_json_list(value: Any) -> Any:
+    decoded = _normalize_json_value(value)
+    return decoded if isinstance(decoded, list) else value
+
+
+def _normalize_json_value(value: Any) -> Any:
+    if not isinstance(value, str):
+        return value
+    try:
+        return json.loads(value)
+    except json.JSONDecodeError:
+        return value
+
+
+def _normalize_integer(value: Any) -> Any:
+    if isinstance(value, str) and re.fullmatch(r"[+-]?\d+", value.strip()):
+        return int(value)
+    return value
+
+
+def _normalize_number(value: Any) -> Any:
+    if isinstance(value, str) and re.fullmatch(
+        r"[+-]?(?:\d+(?:\.\d*)?|\.\d+)",
+        value.strip(),
+    ):
+        return float(value)
+    return value
+
+
+def _model_response_type(response: Mapping[str, Any]) -> str:
+    message = response.get("message")
+    if not isinstance(message, Mapping):
+        return "missing_message"
+    tool_calls = message.get("tool_calls")
+    if isinstance(tool_calls, list) and tool_calls:
+        return "structured_tool_call"
+    content = message.get("content")
+    if not isinstance(content, str) or not content.strip():
+        return "no_tool_call"
+    try:
+        decoded = json.loads(_strip_json_fence(content))
+    except json.JSONDecodeError:
+        return "text_only"
+    return "json_content" if isinstance(decoded, dict) else "malformed_json_content"
+
+
+def _response_error_code(exc: OllamaProviderResponseError) -> str:
+    message = str(exc)
+    if "text instead of a tool call" in message:
+        return "text_only_response"
+    if "no tool call" in message:
+        return "no_tool_call"
+    if "arguments were not valid JSON" in message:
+        return "malformed_tool_arguments"
+    if "arguments must be a JSON object" in message:
+        return "malformed_tool_arguments"
+    if "unknown tool" in message:
+        return "unknown_tool"
+    if "out-of-sequence tool" in message:
+        return "wrong_tool_sequence"
+    if "no message" in message:
+        return "missing_message"
+    return "malformed_provider_response"
+
+
+def _exception_code(exc: Exception) -> str:
+    if isinstance(exc, OllamaProviderTimeoutError):
+        return "provider_timeout"
+    if isinstance(exc, OllamaProviderResponseError):
+        return _response_error_code(exc)
+    return type(exc).__name__
+
+
+def _correction_attempt(observation: ProviderObservation) -> int:
+    if observation.last_action_status != "rejected":
+        return 0
+    return 3 - observation.corrected_action_proposals_remaining
+
+
+def _safe_argument_summary(
+    tool_name: str,
+    arguments: Mapping[str, Any],
+) -> dict[str, Any]:
+    if tool_name in {"read_sensor_data", "get_grid_carbon_intensity"}:
+        return dict(arguments)
+    if tool_name == "log_reasoning":
+        return {
+            "argument_keys": sorted(arguments),
+            "objective_tags": arguments.get("objective_tags"),
+            "confidence": arguments.get("confidence"),
+        }
+    if tool_name == "set_control_action":
+        commands = arguments.get("commands")
+        return {
+            "hold_steps": arguments.get("hold_steps"),
+            "commands": commands if isinstance(commands, list) else commands,
+        }
+    return {"argument_keys": sorted(arguments)}
 
 
 def _strip_json_fence(content: str) -> str:
@@ -369,60 +648,132 @@ def _strip_json_fence(content: str) -> str:
     return text
 
 
-def _system_prompt() -> str:
-    return (
-        "You are a building-control tool caller. Return exactly one tool call. "
-        "Do not reveal hidden chain-of-thought. Use concise summaries only. "
-        "Call tools in this order when information is missing: "
-        "read_sensor_data, get_grid_carbon_intensity, log_reasoning, "
-        "set_control_action. If a control action is rejected, correct it using "
-        "the provided errors. Safe default setpoints are heating 20.0 C and "
-        "cooling 26.0 C for all five zones."
+def _system_prompt(next_tool: str) -> str:
+    argument_hint = {
+        "read_sensor_data": '{"history_steps":2}',
+        "get_grid_carbon_intensity": '{"forecast_steps":4}',
+        "log_reasoning": (
+            "decision_summary, objective_tags, tradeoff_summary, and numeric "
+            "confidence"
+        ),
+        "set_control_action": (
+            'commands={"all_zones":{"mode":"set","heating_c":NUMBER,'
+            '"cooling_c":NUMBER}} and hold_steps=4'
+        ),
+    }[next_tool]
+    prompt = (
+        f"Call {next_tool} now. It is the only permitted tool in this round. "
+        f"Required semantic arguments: {argument_hint}. "
+        "Return exactly one native tool call and no prose. Do not restart the "
+        "sequence and do not reveal hidden chain-of-thought. The controller "
+        "enforces this cross-round order: read_sensor_data, "
+        "get_grid_carbon_intensity, log_reasoning, set_control_action."
     )
+    if next_tool == "log_reasoning":
+        prompt += (
+            " Keep both summaries under 12 words and use concise objective "
+            "tags; no private reasoning."
+        )
+    if next_tool == "set_control_action":
+        prompt += (
+            " After a rejection, correct the action using the compact "
+            "feedback. The all_zones command is expanded into exactly one "
+            "command for SPACE1-1, SPACE2-1, SPACE3-1, SPACE4-1, and "
+            "SPACE5-1 before validation. Choose numeric heating_c and "
+            "cooling_c; use hold_steps=4. Safe defaults are heating 20.0 C "
+            "and cooling 26.0 C. Safety validation is authoritative."
+        )
+    return prompt
 
 
 def _observation_prompt(
     observation: ProviderObservation,
     scenario_directive: str,
 ) -> str:
+    next_tool = _next_required_tool(observation)
+    snapshot = observation.sensor_snapshot
+    compact_zones = (
+        [
+            {
+                "zone_id": zone.zone_id,
+                "temperature_c": zone.air_temperature_c,
+                "pmv": zone.fanger_pmv,
+                "occupancy": zone.occupant_count,
+                "heating_setpoint_c": zone.heating_setpoint_c,
+                "cooling_setpoint_c": zone.cooling_setpoint_c,
+            }
+            for zone in snapshot.zones
+        ]
+        if snapshot is not None
+        and next_tool == "log_reasoning"
+        else None
+    )
+    action_state = (
+        {
+            "zone_ids": [zone.zone_id for zone in snapshot.zones],
+            "temperature_c_range": [
+                min(zone.air_temperature_c for zone in snapshot.zones),
+                max(zone.air_temperature_c for zone in snapshot.zones),
+            ],
+            "pmv_range": [
+                min(zone.fanger_pmv for zone in snapshot.zones),
+                max(zone.fanger_pmv for zone in snapshot.zones),
+            ],
+            "total_occupancy": sum(
+                zone.occupant_count for zone in snapshot.zones
+            ),
+        }
+        if snapshot is not None and next_tool == "set_control_action"
+        else None
+    )
+    carbon = observation.carbon_signal
     payload = {
-        "run_id": observation.run_id,
         "round_number": observation.round_number,
-        "available_tools": observation.discovered_tool_names,
-        "discovered_tool_schemas": observation.discovered_tool_schemas,
-        "cycle_id": observation.cycle_id,
-        "snapshot_id": observation.snapshot_id,
-        "sensor_snapshot": (
-            observation.sensor_snapshot.model_dump(mode="json")
-            if observation.sensor_snapshot is not None
+        "next_required_tool": next_tool,
+        "snapshot_id": (
+            observation.snapshot_id
+            if next_tool != "read_sensor_data"
             else None
         ),
-        "carbon_signal": (
-            observation.carbon_signal.model_dump(mode="json")
-            if observation.carbon_signal is not None
+        "zones": compact_zones,
+        "action_state": action_state,
+        "carbon_g_co2_per_kwh": (
+            carbon.current.g_co2_per_kwh
+            if carbon is not None
+            and next_tool in {"log_reasoning", "set_control_action"}
             else None
         ),
-        "reasoning_log_id": observation.reasoning_log_id,
+        "reasoning_logged": observation.reasoning_log_id is not None,
         "last_action_status": observation.last_action_status,
-        "last_error_codes": observation.last_error_codes,
-        "last_action_errors": [
-            error.model_dump(mode="json")
-            for error in observation.last_action_errors
-        ],
-        "runtime_errors": [
-            error.model_dump(mode="json") for error in observation.runtime_errors
+        "rejection_feedback": [
+            {
+                "code": error.code.value,
+                "field": error.field,
+                "message": error.message,
+                "retryable": error.retryable,
+            }
+            for error in observation.last_action_errors[:10]
         ],
         "tool_calls_remaining": observation.tool_calls_remaining,
-        "corrected_action_proposals_remaining": (
-            observation.corrected_action_proposals_remaining
+        "correction_attempt": _correction_attempt(observation),
+        "scenario_directive": (
+            scenario_directive
+            if next_tool in {"log_reasoning", "set_control_action"}
+            else ""
         ),
-        "scenario_directive": scenario_directive,
-        "response_shape": {
-            "tool_name": "one available tool name",
-            "arguments": "semantic arguments only; omit request_id/cycle_id/snapshot_id",
-        },
+        "instruction": f"Call {next_tool} now.",
     }
     return json.dumps(payload, allow_nan=False, separators=(",", ":"))
+
+
+def _next_required_tool(observation: ProviderObservation) -> str:
+    if observation.sensor_snapshot is None:
+        return "read_sensor_data"
+    if observation.carbon_signal is None:
+        return "get_grid_carbon_intensity"
+    if observation.reasoning_log_id is None:
+        return "log_reasoning"
+    return "set_control_action"
 
 
 def _tool_specs(tool_names: tuple[str, ...]) -> list[dict[str, Any]]:
@@ -450,20 +801,32 @@ def _tool_spec(name: str) -> dict[str, Any]:
         },
         "set_control_action": {
             "commands": {
-                "type": "array",
-                "minItems": len(PHASE1_ZONE_IDS),
-                "maxItems": len(PHASE1_ZONE_IDS),
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "mode": {"type": "string", "enum": ["set", "release"]},
-                        "zone_id": {"type": "string", "enum": list(PHASE1_ZONE_IDS)},
-                        "heating_c": {"type": "number"},
-                        "cooling_c": {"type": "number"},
+                "type": "object",
+                "description": (
+                    "A compact all_zones command expanded into the exact five "
+                    "Phase 1 zone commands before MCP validation."
+                ),
+                "properties": {
+                    "all_zones": {
+                        "type": "object",
+                        "properties": {
+                            "mode": {
+                                "type": "string",
+                                "enum": ["set", "release"],
+                            },
+                            "heating_c": {"type": "number"},
+                            "cooling_c": {"type": "number"},
+                        },
+                        "required": [
+                            "mode",
+                            "heating_c",
+                            "cooling_c",
+                        ],
+                        "additionalProperties": False,
                     },
-                    "required": ["mode", "zone_id"],
-                    "additionalProperties": False,
                 },
+                "required": ["all_zones"],
+                "additionalProperties": False,
             },
             "hold_steps": {"type": "integer", "minimum": 1, "maximum": 4},
         },

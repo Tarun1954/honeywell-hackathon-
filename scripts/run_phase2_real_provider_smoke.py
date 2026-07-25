@@ -120,8 +120,31 @@ def _evidence_payload(
                 "round": item.round_number,
                 "tool": item.tool_name,
                 "argument_keys": list(item.argument_keys),
+                "model_response_type": item.response_type,
+                "validation_code": item.validation_code,
+                "correction_attempt": item.correction_attempt,
+                "argument_summary": item.argument_summary,
             }
             for item in provider.evidence
+        ],
+        "agent_trace": [
+            {
+                "round": event.round_number,
+                "kind": event.kind.value,
+                "tool": event.tool_name,
+                "status": event.status,
+                "detail": event.detail,
+            }
+            for event in result.trace
+            if event.kind.value
+            in {
+                "provider_call",
+                "tool_call",
+                "tool_result",
+                "proposal_rejected",
+                "fallback",
+                "terminal",
+            }
         ],
         "concise_reasoning_summary": (
             reasoning.decision_summary if reasoning is not None else None
@@ -135,8 +158,16 @@ def _evidence_payload(
 
 
 async def _run_one(scenario: str) -> tuple[AgentCycleResult, dict[str, Any]]:
+    def emit_diagnostic(payload: Mapping[str, Any]) -> None:
+        print(
+            "Ollama diagnostic: "
+            + json.dumps(payload, sort_keys=True, separators=(",", ":")),
+            flush=True,
+        )
+
     provider = OllamaToolProvider.from_phase2_config(
-        scenario_directive=_scenario_directive(scenario)
+        scenario_directive=_scenario_directive(scenario),
+        diagnostic_sink=emit_diagnostic,
     )
     client = _EvidenceClient()
     orchestrator = Phase2AgentOrchestrator(
@@ -159,6 +190,25 @@ async def run_real_provider_smoke() -> tuple[dict[str, Any], ...]:
         print(
             "Real provider trace: "
             + json.dumps(evidence, sort_keys=True, separators=(",", ":")),
+            flush=True,
+        )
+        print(
+            "Ollama terminal diagnostic: "
+            + json.dumps(
+                {
+                    "event": "ollama_cycle_terminal",
+                    "scenario": scenario,
+                    "validation_code": result.record.action_status.value
+                    if result.record.action_status is not None
+                    else result.record.terminal_status.value,
+                    "correction_attempt": (
+                        result.record.corrected_action_proposals
+                    ),
+                    "fallback_used": result.record.fallback_used,
+                },
+                sort_keys=True,
+                separators=(",", ":"),
+            ),
             flush=True,
         )
         outputs.append(evidence)

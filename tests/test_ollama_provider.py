@@ -22,6 +22,7 @@ from src.ollama_provider import (
     OllamaProviderResponseError,
     OllamaProviderTimeoutError,
     OllamaToolProvider,
+    _normalize_argument_format,
     load_ollama_provider_config,
 )
 from src.phase2_agent import AgentTerminalStatus, Phase2AgentOrchestrator
@@ -186,6 +187,74 @@ def tool_response(
 class OllamaProviderToolCallTests(unittest.IsolatedAsyncioTestCase):
     """Exercise response conversion without reaching real Ollama."""
 
+    def test_chat_request_exposes_only_the_next_required_tool(self) -> None:
+        provider = OllamaToolProvider(
+            config=OllamaProviderConfig(
+                provider="ollama",
+                model="llama3.2:3b",
+                context_tokens=4096,
+            )
+        )
+        response = tool_response("read_sensor_data", {"history_steps": 0})
+        with patch.object(
+            OllamaToolProvider,
+            "_request_json",
+            return_value=response,
+        ) as request_json:
+            provider._chat_once(make_observation())
+
+        payload = request_json.call_args.args[2]
+        self.assertEqual(
+            [
+                tool["function"]["name"]
+                for tool in payload["tools"]
+            ],
+            ["read_sensor_data"],
+        )
+        self.assertEqual(payload["options"]["num_ctx"], 1024)
+        self.assertEqual(payload["options"]["num_predict"], 96)
+
+    def test_nested_ollama_argument_strings_are_normalized_not_clamped(
+        self,
+    ) -> None:
+        reasoning = _normalize_argument_format(
+            "log_reasoning",
+            {
+                "objective_tags": '["thermal_comfort","safety"]',
+                "confidence": "0.8",
+            },
+        )
+        action = _normalize_argument_format(
+            "set_control_action",
+            {
+                "commands": (
+                    '{"all_zones":{"mode":"set",'
+                    '"heating_c":"15.0","cooling_c":"31.0"}}'
+                ),
+                "hold_steps": "4",
+            },
+        )
+
+        self.assertEqual(
+            reasoning["objective_tags"],
+            ["thermal_comfort", "safety"],
+        )
+        self.assertEqual(reasoning["confidence"], 0.8)
+        self.assertEqual(action["hold_steps"], 4)
+        self.assertEqual(len(action["commands"]), 5)
+        self.assertEqual(
+            {item["zone_id"] for item in action["commands"]},
+            {
+                "SPACE1-1",
+                "SPACE2-1",
+                "SPACE3-1",
+                "SPACE4-1",
+                "SPACE5-1",
+            },
+        )
+        self.assertEqual(action["commands"][0]["heating_c"], 15.0)
+        self.assertEqual(action["commands"][0]["cooling_c"], 31.0)
+
     async def test_valid_structured_tool_call_is_converted(self) -> None:
         provider = StaticOllamaProvider(
             [tool_response("read_sensor_data", {"history_steps": 2})]
@@ -208,10 +277,23 @@ class OllamaProviderToolCallTests(unittest.IsolatedAsyncioTestCase):
         )
         provider.start_cycle()
         observation = make_observation()
+        sensor = Phase2Services.deterministic().sensor_store.read(
+            ReadSensorDataRequest(
+                request_id="ollama-test-read",
+                history_steps=0,
+            )
+        )
 
         first = await provider.next_tool_call(observation)
         second = await provider.next_tool_call(
-            observation.model_copy(update={"round_number": 2})
+            observation.model_copy(
+                update={
+                    "round_number": 2,
+                    "cycle_id": sensor.snapshot.cycle_id,
+                    "snapshot_id": sensor.snapshot.snapshot_id,
+                    "sensor_snapshot": sensor.snapshot,
+                }
+            )
         )
 
         self.assertEqual(first.call_id, "ollama-test:ollama:01:01")
@@ -225,6 +307,10 @@ class OllamaProviderToolCallTests(unittest.IsolatedAsyncioTestCase):
         provider = StaticOllamaProvider(
             [{"message": {"content": "I would read the sensors first."}}]
         )
+        diagnostics: list[dict[str, Any]] = []
+        provider.diagnostic_sink = lambda payload: diagnostics.append(
+            dict(payload)
+        )
         provider.start_cycle()
 
         with self.assertRaisesRegex(
@@ -232,6 +318,20 @@ class OllamaProviderToolCallTests(unittest.IsolatedAsyncioTestCase):
             "text instead of a tool call",
         ):
             await provider.next_tool_call(make_observation())
+        self.assertEqual(provider.evidence[0].response_type, "text_only")
+        self.assertEqual(
+            provider.evidence[0].validation_code,
+            "text_only_response",
+        )
+        self.assertEqual(
+            diagnostics[0]["model_response_type"],
+            "text_only",
+        )
+        self.assertEqual(
+            diagnostics[0]["validation_code"],
+            "text_only_response",
+        )
+        self.assertFalse(diagnostics[0]["fallback_used"])
 
     async def test_malformed_tool_arguments_are_rejected(self) -> None:
         provider = StaticOllamaProvider(
@@ -258,12 +358,38 @@ class OllamaProviderToolCallTests(unittest.IsolatedAsyncioTestCase):
         ):
             await provider.next_tool_call(make_observation())
 
+    async def test_out_of_sequence_tool_is_rejected(self) -> None:
+        provider = StaticOllamaProvider(
+            [
+                tool_response(
+                    "get_grid_carbon_intensity",
+                    {"forecast_steps": 4},
+                )
+            ]
+        )
+        provider.start_cycle()
+
+        with self.assertRaisesRegex(
+            OllamaProviderResponseError,
+            "out-of-sequence",
+        ):
+            await provider.next_tool_call(make_observation())
+        self.assertEqual(
+            provider.evidence[0].validation_code,
+            "wrong_tool_sequence",
+        )
+
     async def test_connection_timeout_is_classified(self) -> None:
         provider = StaticOllamaProvider([{"raise_timeout": True}])
         provider.start_cycle()
 
         with self.assertRaises(OllamaProviderTimeoutError):
             await provider.next_tool_call(make_observation())
+        self.assertEqual(provider.evidence[0].response_type, "provider_timeout")
+        self.assertEqual(
+            provider.evidence[0].validation_code,
+            "provider_timeout",
+        )
 
 
 class OllamaStartupValidationTests(unittest.TestCase):

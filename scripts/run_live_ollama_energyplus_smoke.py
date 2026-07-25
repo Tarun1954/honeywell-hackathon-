@@ -38,6 +38,13 @@ def create_live_ollama_provider(
 ) -> OllamaToolProvider:
     """Load `.env` through the provider and validate Ollama startup."""
 
+    def emit_diagnostic(payload: dict[str, Any]) -> None:
+        print(
+            "Ollama diagnostic: "
+            + json.dumps(payload, sort_keys=True, separators=(",", ":")),
+            flush=True,
+        )
+
     return OllamaToolProvider.from_phase2_config(
         config_path,
         scenario_directive=(
@@ -45,6 +52,7 @@ def create_live_ollama_provider(
             "thermostat changes, hold accepted commands for four timesteps, "
             "and release controls when safe action is uncertain."
         ),
+        diagnostic_sink=emit_diagnostic,
     )
 
 

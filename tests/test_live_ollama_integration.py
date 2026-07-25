@@ -112,6 +112,7 @@ class LiveOllamaIntegrationTests(unittest.TestCase):
         create_provider.assert_called_once_with(
             "config/phase2.yaml",
             scenario_directive=ANY,
+            diagnostic_sink=ANY,
         )
         provider_factory = run_smoke.call_args.kwargs["provider_factory"]
         self.assertIs(provider_factory(Mock()), provider)
