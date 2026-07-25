@@ -275,6 +275,8 @@ class LiveAgentOutcome:
     mcp_tools_called: tuple[str, ...]
     action_id: str | None = None
     provider_name: str = "scripted"
+    rejected_action_count: int = 0
+    corrected_action_count: int = 0
 
 
 AgentCycleRunner = Callable[
@@ -626,6 +628,16 @@ class LiveScriptedAgentController:
                     and action.source == "phase2-scripted-fallback"
                 )
             ),
+            "rejected_action_count": (
+                outcome.rejected_action_count
+                if outcome is not None
+                else 0
+            ),
+            "corrected_action_count": (
+                outcome.corrected_action_count
+                if outcome is not None
+                else 0
+            ),
             "actuator_write_result": self._last_actuator_write,
         }
 
@@ -746,6 +758,14 @@ class LiveScriptedAgentController:
             mcp_tools_called=result.record.tool_sequence,
             action_id=response.action_id,
             provider_name=result.record.provider_name,
+            rejected_action_count=sum(
+                event.tool_name == "set_control_action"
+                and event.status == "rejected"
+                for event in result.trace
+            ),
+            corrected_action_count=(
+                result.record.corrected_action_proposals
+            ),
         )
 
 
