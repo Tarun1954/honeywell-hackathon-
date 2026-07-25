@@ -1,0 +1,163 @@
+{
+  "accepted_action": {
+    "chosen_setpoints": {
+      "SPACE1-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "mode": "set"
+      },
+      "SPACE2-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "mode": "set"
+      },
+      "SPACE3-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "mode": "set"
+      },
+      "SPACE4-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "mode": "set"
+      },
+      "SPACE5-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "mode": "set"
+      }
+    },
+    "fallback_used": false,
+    "status": "accepted"
+  },
+  "actuator_write_result": {
+    "reason": "MCP-validated hourly live-provider action.",
+    "selected_snapshot_sequence": 4,
+    "simulation_time_hours": 1.0,
+    "source": "phase2-ollama-llama3.2:3b-agent",
+    "status": "applied",
+    "zones": {
+      "SPACE1-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "status": "applied"
+      },
+      "SPACE2-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "status": "applied"
+      },
+      "SPACE3-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "status": "applied"
+      },
+      "SPACE4-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "status": "applied"
+      },
+      "SPACE5-1": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0,
+        "status": "applied"
+      }
+    }
+  },
+  "energyplus": {
+    "exit_status": 0,
+    "fatal_count": 0,
+    "output_directory": "D:\\honeywell_hackathon\\runs\\phase1\\live-ollama-smoke-2",
+    "severe_count": 0,
+    "timestep_count": 16
+  },
+  "integration_log": "D:\\honeywell_hackathon\\runs\\phase1\\live-ollama-artifacts-20260725T204901764715Z\\live_agent_timesteps.jsonl",
+  "live_sensor_snapshot": {
+    "facility_electricity_demand_w": 475.0,
+    "facility_electricity_kwh_since_start": 0.475,
+    "occupancy": {
+      "SPACE1-1": 0.0,
+      "SPACE2-1": 0.0,
+      "SPACE3-1": 0.0,
+      "SPACE4-1": 0.0,
+      "SPACE5-1": 0.0
+    },
+    "pmv": {
+      "SPACE1-1": -1.2273521339959756,
+      "SPACE2-1": -1.2380890594728284,
+      "SPACE3-1": -1.2370424663726232,
+      "SPACE4-1": -1.2288110522907045,
+      "SPACE5-1": -1.1457771971447481
+    },
+    "simulated_timestamp": "2015-07-21T01:00:00+00:00",
+    "snapshot_id": "energyplus-3-000004",
+    "zone_temperatures_c": {
+      "SPACE1-1": 21.23118288635055,
+      "SPACE2-1": 21.253580781450836,
+      "SPACE3-1": 21.19266295872988,
+      "SPACE4-1": 21.288148239692966,
+      "SPACE5-1": 21.431673873033446
+    }
+  },
+  "mcp_tools_called": [
+    "read_sensor_data",
+    "get_grid_carbon_intensity",
+    "log_reasoning",
+    "set_control_action"
+  ],
+  "provider_name": "ollama-llama3.2:3b",
+  "setpoint_changes": {
+    "SPACE1-1": {
+      "previous": {
+        "cooling_c": 29.4,
+        "heating_c": 16.7
+      },
+      "updated": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0
+      }
+    },
+    "SPACE2-1": {
+      "previous": {
+        "cooling_c": 29.4,
+        "heating_c": 16.7
+      },
+      "updated": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0
+      }
+    },
+    "SPACE3-1": {
+      "previous": {
+        "cooling_c": 29.4,
+        "heating_c": 16.7
+      },
+      "updated": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0
+      }
+    },
+    "SPACE4-1": {
+      "previous": {
+        "cooling_c": 29.4,
+        "heating_c": 16.7
+      },
+      "updated": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0
+      }
+    },
+    "SPACE5-1": {
+      "previous": {
+        "cooling_c": 29.4,
+        "heating_c": 16.7
+      },
+      "updated": {
+        "cooling_c": 26.0,
+        "heating_c": 20.0
+      }
+    }
+  },
+  "simulated_hours": 4.0,
+  "status": "passed"
+}

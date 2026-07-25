@@ -18,12 +18,13 @@ IDF. It intentionally does not contain a final ZIP, video, or presentation.
 | API-ready runtime IDF actually produced by Phase 1 | Complete | `submission/models/api_ready_runtime.idf` |
 | Weather input | Complete | `weather/USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw` |
 | Quantitative savings dashboard | Complete | `submission/dashboard/index.html` |
+| Verified live-smoke demo evidence | Complete | `submission/results/live_ollama_smoke_report.json` |
 | Real Ollama JSON and CSV evidence | Complete | `submission/results/ollama_24h_comparison.json` and `submission/results/ollama_24h_comparison.csv` |
 | Deterministic/scripted JSON and CSV evidence | Complete and separately labeled | `submission/results/results_summary.json` and `submission/results/results_summary.csv` |
 | PNG charts | Complete | `submission/results/ollama_24h_energy_peak.png`, `submission/results/ollama_24h_comfort.png`, `submission/results/ollama_24h_actions_latency.png`, `submission/results/energy_comparison.png`, `submission/results/zone_temperature_pmv.png`, and `submission/results/action_setpoint_evidence.png` |
 | Architecture document | Complete | `submission/docs/system_architecture.md` |
 | Quantitative results documents | Complete | `submission/docs/current_results.md`, `submission/docs/ollama_24h_comparison.md`, and `submission/docs/phase1_report.md` |
-| Demo video | Pending placeholder only | `submission/video/VIDEO_PENDING.md` |
+| Demo video | Pending; planned output not yet created | `submission/video/eco_loop_demo.mp4` (planned), with `submission/video/VIDEO_PENDING.md` as the current placeholder |
 | Presentation | Pending placeholder only | `submission/presentation/PRESENTATION_PENDING.md` |
 | GitHub repository | Available | `https://github.com/Tarun1954/honeywell-hackathon-` |
 

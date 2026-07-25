@@ -4,6 +4,8 @@ The result files are copied from the tracked `runs/final/` evidence directory.
 
 ## Real Ollama comparison
 
+- `live_ollama_smoke_report.json` (verified four-hour live smoke evidence used
+  by the explicitly labeled demo replay mode)
 - `ollama_24h_comparison.json`
 - `ollama_24h_comparison.csv`
 - `ollama_24h_energy_peak.png`
