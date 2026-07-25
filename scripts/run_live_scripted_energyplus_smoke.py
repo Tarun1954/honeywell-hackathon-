@@ -10,7 +10,10 @@ from pathlib import Path
 from typing import Any
 
 from src.energyplus_wrapper import EnergyPlusWrapper, Phase1Config
-from src.live_energyplus_integration import LiveScriptedAgentController
+from src.live_energyplus_integration import (
+    LiveScriptedAgentController,
+    ProviderFactory,
+)
 
 
 LOGGER = logging.getLogger("eco_loop.phase2.live_smoke")
@@ -59,25 +62,28 @@ def run_live_smoke(
     config_path: str | Path,
     *,
     timesteps: int = DEFAULT_TIMESTEPS,
+    provider_factory: ProviderFactory | None = None,
+    artifact_label: str = "live-scripted",
 ) -> dict[str, Any]:
-    """Run and verify the minimal live scripted integration."""
+    """Run and verify the minimal live provider integration."""
 
     if timesteps != DEFAULT_TIMESTEPS:
         raise ValueError("the focused live smoke must run exactly 16 timesteps")
     config = Phase1Config.load(config_path)
     run_suffix = datetime.now(UTC).strftime("%Y%m%dT%H%M%S%fZ")
     artifact_directory = (
-        config.output_root / f"live-scripted-artifacts-{run_suffix}"
+        config.output_root / f"{artifact_label}-artifacts-{run_suffix}"
     )
     controller = LiveScriptedAgentController(
         repository_root=config.repository_root,
         work_directory=artifact_directory,
         controlled_zones=config.controlled_zones,
         safety_limits=config.safety,
+        provider_factory=provider_factory,
     )
     result = EnergyPlusWrapper(config).run(
-        run_id="live-scripted-smoke",
-        mode="live-scripted",
+        run_id=f"{artifact_label}-smoke",
+        mode=artifact_label,
         policy=controller,
         model_path=config.baseline_model,
         max_timesteps=timesteps,
@@ -90,7 +96,7 @@ def run_live_smoke(
         and not event["fallback_used"]
     ]
     if not decision_events:
-        raise RuntimeError("no live scripted action was accepted")
+        raise RuntimeError("no live provider action was accepted")
     accepted = decision_events[0]
     changes = _setpoint_changes(accepted)
     if not changes:
@@ -102,7 +108,7 @@ def run_live_smoke(
         for event in controller.events
         if event["sequence"] > accepted["sequence"]
         and event["actuator_write_result"].get("source")
-        == "phase2-scripted-agent"
+        == f"phase2-{accepted['provider_name']}-agent"
     ]
     if not write_events:
         raise RuntimeError("no accepted live action reached actuator writeback")
@@ -133,6 +139,7 @@ def run_live_smoke(
             )
         },
         "mcp_tools_called": accepted["mcp_tools_called"],
+        "provider_name": accepted["provider_name"],
         "accepted_action": {
             "status": accepted["action_status"],
             "fallback_used": accepted["fallback_used"],

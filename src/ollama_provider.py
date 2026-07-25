@@ -128,7 +128,12 @@ class OllamaToolProvider:
             raise OllamaProviderConfigurationError(
                 "PHASE2_LLM_MODEL must name an installed Ollama model"
             )
-        payload = self._request_json("GET", "/api/tags", None)
+        try:
+            payload = self._request_json("GET", "/api/tags", None)
+        except TimeoutError as exc:
+            raise OllamaProviderTimeoutError(
+                "Ollama startup validation timed out"
+            ) from exc
         models = {
             str(item.get("name", ""))
             for item in payload.get("models", [])

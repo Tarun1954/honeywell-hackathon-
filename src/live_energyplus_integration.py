@@ -270,12 +270,14 @@ class LiveAgentOutcome:
     terminal_status: str
     mcp_tools_called: tuple[str, ...]
     action_id: str | None = None
+    provider_name: str = "scripted"
 
 
 AgentCycleRunner = Callable[
     [SensorSnapshot, tuple[SensorSnapshot, ...], int],
     LiveAgentOutcome,
 ]
+ProviderFactory = Callable[[SensorSnapshot], Any]
 
 
 def _set_commands(
@@ -416,6 +418,7 @@ class LiveScriptedAgentController:
         heating_c: float = DEFAULT_HEATING_SETPOINT_C,
         cooling_c: float = DEFAULT_COOLING_SETPOINT_C,
         cycle_runner: AgentCycleRunner | None = None,
+        provider_factory: ProviderFactory | None = None,
     ) -> None:
         if decision_interval_steps != 4:
             raise ValueError("live decisions must run every four 15-minute steps")
@@ -431,6 +434,7 @@ class LiveScriptedAgentController:
         self.heating_c = heating_c
         self.cooling_c = cooling_c
         self._cycle_runner = cycle_runner or self._run_real_mcp_cycle
+        self._provider_factory = provider_factory
         self._facility_electricity_kwh = 0.0
         self._history: list[SensorSnapshot] = []
         self._active_action: ControlAction | None = None
@@ -495,7 +499,7 @@ class LiveScriptedAgentController:
                         controlled_zones=self.controlled_zones,
                         safety_limits=self.safety_limits,
                         reason=(
-                            "The scripted live agent failed safely: "
+                            "The live provider failed safely: "
                             f"{type(exc).__name__}"
                         ),
                     ),
@@ -503,6 +507,7 @@ class LiveScriptedAgentController:
                     fallback_used=True,
                     terminal_status="failed",
                     mcp_tools_called=(),
+                    provider_name="deterministic-fallback",
                 )
             self._active_action = decision_outcome.action
             self._hold_returns_remaining = self.hold_steps
@@ -595,6 +600,15 @@ class LiveScriptedAgentController:
             "mcp_tools_called": (
                 list(outcome.mcp_tools_called) if outcome is not None else []
             ),
+            "provider_name": (
+                outcome.provider_name
+                if outcome is not None
+                else (
+                    self._last_outcome.provider_name
+                    if action is not None and self._last_outcome is not None
+                    else None
+                )
+            ),
             "action_status": (
                 outcome.action_status
                 if outcome is not None
@@ -654,6 +668,17 @@ class LiveScriptedAgentController:
             encoding="utf-8",
             encoding_error_handler="strict",
         )
+        provider = (
+            self._provider_factory(snapshot)
+            if self._provider_factory is not None
+            else build_live_scripted_provider(
+                sequence=snapshot.sequence,
+                zones=self.controlled_zones,
+                heating_c=self.heating_c,
+                cooling_c=self.cooling_c,
+                hold_steps=self.hold_steps,
+            )
+        )
 
         async def execute() -> AgentCycleResult:
             orchestrator = Phase2AgentOrchestrator(
@@ -661,13 +686,6 @@ class LiveScriptedAgentController:
                     parameters,
                     allow_read_reconnect=False,
                 )
-            )
-            provider = build_live_scripted_provider(
-                sequence=snapshot.sequence,
-                zones=self.controlled_zones,
-                heating_c=self.heating_c,
-                cooling_c=self.cooling_c,
-                hold_steps=self.hold_steps,
             )
             return await orchestrator.run_cycle(
                 provider,
@@ -703,12 +721,12 @@ class LiveScriptedAgentController:
             source=(
                 "phase2-scripted-fallback"
                 if result.record.fallback_used
-                else "phase2-scripted-agent"
+                else f"phase2-{result.record.provider_name}-agent"
             ),
             reason=(
                 "MCP-validated deterministic release fallback."
                 if result.record.fallback_used
-                else "MCP-validated hourly scripted-agent action."
+                else "MCP-validated hourly live-provider action."
             ),
             controlled_zones=self.controlled_zones,
             safety_limits=self.safety_limits,
@@ -720,6 +738,7 @@ class LiveScriptedAgentController:
             terminal_status=result.record.terminal_status.value,
             mcp_tools_called=result.record.tool_sequence,
             action_id=response.action_id,
+            provider_name=result.record.provider_name,
         )
 
 
@@ -732,6 +751,7 @@ __all__ = [
     "LiveGridCarbonStore",
     "LiveScriptedAgentController",
     "LiveSensorStore",
+    "ProviderFactory",
     "RecordingActionLedger",
     "build_live_scripted_provider",
     "create_live_services",
