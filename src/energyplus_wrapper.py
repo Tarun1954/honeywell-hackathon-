@@ -702,9 +702,19 @@ class EnergyPlusWrapper:
         mode: str,
         policy: Policy | None = None,
         model_path: str | Path | None = None,
+        max_timesteps: int | None = None,
     ) -> RunResult:
         """Run EnergyPlus with bounded retry for recoverable engine failures."""
 
+        if (
+            max_timesteps is not None
+            and (
+                isinstance(max_timesteps, bool)
+                or not isinstance(max_timesteps, int)
+                or max_timesteps < 1
+            )
+        ):
+            raise ConfigurationError("max_timesteps must be a positive integer")
         selected_model = Path(model_path).resolve() if model_path else self.config.baseline_model
         self.config.validate_paths(selected_model)
         last_error: BaseException | None = None
@@ -718,6 +728,7 @@ class EnergyPlusWrapper:
                     model_path=selected_model,
                     output_directory=output_directory,
                     attempt=attempt,
+                    max_timesteps=max_timesteps,
                 )
             except (Phase1Error, OSError) as exc:
                 cause = exc.__cause__
@@ -792,6 +803,7 @@ class EnergyPlusWrapper:
         model_path: Path,
         output_directory: Path,
         attempt: int,
+        max_timesteps: int | None = None,
     ) -> RunResult:
         """Execute one EnergyPlus state from initialization through cleanup."""
 
@@ -1165,6 +1177,9 @@ class EnergyPlusWrapper:
                 applied["source"] = action.source
                 applied["reason"] = action.reason
             last_applied = applied
+            write_observer = getattr(policy, "record_actuator_write", None)
+            if callable(write_observer):
+                write_observer(applied)
 
         def on_end_system_timestep(callback_state: Any) -> None:
             nonlocal zone_buffer_facility_electricity_j
@@ -1354,6 +1369,11 @@ class EnergyPlusWrapper:
                 raise proposal_error
             latest_action = proposed
             latest_action_sequence = timestep_count
+            if (
+                max_timesteps is not None
+                and timestep_count >= max_timesteps
+            ):
+                api.runtime.stop_simulation(callback_state)
 
         started = time.perf_counter()
         exit_code = -1
