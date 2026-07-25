@@ -1,0 +1,42 @@
+schema_version: phase2.v1
+phase: 2
+
+simulation:
+  source: mock
+  timestep_minutes: 15
+  available_controls:
+    - zone_thermostat_setpoints
+
+safety:
+  controlled_zones:
+    - SPACE1-1
+    - SPACE2-1
+    - SPACE3-1
+    - SPACE4-1
+    - SPACE5-1
+  heating_minimum_c: 16.0
+  heating_maximum_c: 24.0
+  cooling_minimum_c: 20.0
+  cooling_maximum_c: 30.0
+  minimum_deadband_c: 1.0
+  occupied_heating_minimum_c: 20.0
+  occupied_cooling_maximum_c: 26.0
+  maximum_absolute_pmv: 0.7
+  maximum_hold_steps: 4
+
+contracts:
+  maximum_history_steps: 4
+  maximum_carbon_forecast_steps: 16
+  maximum_runtime_errors: 20
+
+mcp:
+  server_name: eco-loop-phase2
+  transport: stdio
+
+llm:
+  provider: ${PHASE2_LLM_PROVIDER}
+  model: ${PHASE2_LLM_MODEL}
+
+retry:
+  maximum_attempts: 3
+  initial_delay_seconds: 0.25
