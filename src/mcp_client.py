@@ -289,6 +289,7 @@ class Phase2MCPClient:
             DEFAULT_CONNECTION_TIMEOUT_SECONDS
         ),
         request_timeout_seconds: float = DEFAULT_REQUEST_TIMEOUT_SECONDS,
+        allow_read_reconnect: bool = True,
         errlog: TextIO | None = None,
     ) -> None:
         self._server_parameters = (
@@ -302,6 +303,9 @@ class Phase2MCPClient:
             request_timeout_seconds,
             "request_timeout_seconds",
         )
+        if not isinstance(allow_read_reconnect, bool):
+            raise TypeError("allow_read_reconnect must be a bool")
+        self._allow_read_reconnect = allow_read_reconnect
         self._errlog = errlog if errlog is not None else sys.stderr
         self._connection_context: (
             AbstractAsyncContextManager[
@@ -532,7 +536,8 @@ class Phase2MCPClient:
             raise
         except MCPTransportError as exc:
             if (
-                tool_name not in RECONNECTABLE_READ_TOOL_NAMES
+                not self._allow_read_reconnect
+                or tool_name not in RECONNECTABLE_READ_TOOL_NAMES
                 or self._has_mutation_state
             ):
                 state_continuity_was_required = self._has_mutation_state
