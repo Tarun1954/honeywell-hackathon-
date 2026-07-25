@@ -4,9 +4,12 @@ Status reflects repository contents at this documentation checkpoint.
 
 - [x] Source code: EnergyPlus wrapper, live adapter, MCP, agent, providers,
   validation, runners, aggregation, and tests
-- [x] Baseline and controlled EnergyPlus files:
+- [x] Baseline and API-ready EnergyPlus files:
   [`models/baseline.idf`](../models/baseline.idf) and
-  [`models/optimized_runtime.idf`](../models/optimized_runtime.idf)
+  [`models/optimized_runtime.idf`](../models/optimized_runtime.idf). The
+  controlled run uses live API actuator overrides; no permanently modified
+  controlled IDF exists. See
+  [`submission/models/MODEL_NOTES.md`](../submission/models/MODEL_NOTES.md).
 - [x] MCP implementation:
   [`src/mcp_server.py`](../src/mcp_server.py) and
   [`src/mcp_client.py`](../src/mcp_client.py)

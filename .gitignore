@@ -11,6 +11,7 @@ dist/
 htmlcov/
 .mypy_cache/
 .ruff_cache/
+.pytest_cache/
 
 # Local configuration and credentials
 .env
@@ -21,8 +22,16 @@ htmlcov/
 .tools/
 *.zip.part
 
+# Local model downloads and inference caches
+ollama-models/
+models/downloads/
+*.gguf
+*.safetensors
+*.onnx
+
 # Phase 1 runtime output
 runs/
+*.log
 /eplusout.*
 /sqlite.err
 /audit.out
