@@ -1,0 +1,53 @@
+engine:
+  version: "26.1.0"
+  home: "${ENERGYPLUS_HOME}"
+  executable: "energyplus.exe"
+  idd: "Energy+.idd"
+  python_api_directory: "."
+
+model:
+  baseline: "models/baseline.idf"
+  optimized_runtime: "models/optimized_runtime.idf"
+
+weather:
+  file: "weather/USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw"
+
+output:
+  root: "runs/phase1"
+  timestep_log: "timesteps.jsonl"
+  summary: "summary.json"
+
+simulation:
+  timestep_minutes: 15
+  run_period:
+    start_month: 7
+    start_day: 21
+    end_month: 7
+    end_day: 27
+  controlled_zones:
+    - "SPACE1-1"
+    - "SPACE2-1"
+    - "SPACE3-1"
+    - "SPACE4-1"
+    - "SPACE5-1"
+  people_objects:
+    "SPACE1-1": "SPACE1-1 People 1"
+    "SPACE2-1": "SPACE2-1 People 1"
+    "SPACE3-1": "SPACE3-1 People 1"
+    "SPACE4-1": "SPACE4-1 People 1"
+    "SPACE5-1": "SPACE5-1 People 1"
+safety:
+  heating_setpoint_c:
+    minimum: 16.0
+    maximum: 24.0
+  cooling_setpoint_c:
+    minimum: 20.0
+    maximum: 30.0
+  minimum_deadband_c: 1.0
+  writeback_tolerance_c: 0.1
+
+runtime:
+  max_attempts: 2
+  retry_delay_seconds: 1.0
+  diagnostic_heating_setpoint_c: 20.0
+  diagnostic_cooling_setpoint_c: 26.0
