@@ -240,7 +240,7 @@ class OllamaToolProvider:
             raise
         except OSError as exc:
             raise OllamaProviderConfigurationError(
-                f"Ollama is unavailable at {self.config.base_url}"
+                f"Ollama is unavailable at {_safe_base_url(self.config.base_url)}"
             ) from exc
         except json.JSONDecodeError as exc:
             raise OllamaProviderResponseError(
@@ -319,6 +319,16 @@ def _resolve_env(value: str) -> str:
 def _provider_name_for_model(model: str) -> str:
     cleaned = re.sub(r"[^A-Za-z0-9._:-]+", "-", model).strip("-")
     return f"ollama-{cleaned}"[:48] or "ollama"
+
+
+def _safe_base_url(value: str) -> str:
+    sanitized = re.sub(r"//([^/@]+)@", "//<redacted>@", value)
+    sanitized = re.sub(
+        r"(?i)(api[_-]?key|token|secret|password)=([^&#]+)",
+        r"\1=<redacted>",
+        sanitized,
+    )
+    return sanitized
 
 
 def _normalize_call(
