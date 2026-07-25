@@ -25,6 +25,7 @@ from pydantic import (
 from src.phase2_contracts import (
     GridCarbonIntensityResponse,
     SensorSnapshot,
+    ToolError,
 )
 
 
@@ -172,6 +173,9 @@ class ProviderObservation(BaseModel):
     run_id: ScriptIdentifier
     round_number: Annotated[int, Field(ge=1, le=6)]
     discovered_tool_names: tuple[str, ...]
+    discovered_tool_schemas: dict[str, dict[str, Any]] = Field(
+        default_factory=dict
+    )
     cycle_id: str | None = None
     snapshot_id: str | None = None
     sensor_snapshot: SensorSnapshot | None = None
@@ -179,6 +183,10 @@ class ProviderObservation(BaseModel):
     reasoning_log_id: str | None = None
     last_action_status: str | None = None
     last_error_codes: tuple[str, ...] = ()
+    last_action_errors: Annotated[
+        tuple[ToolError, ...],
+        Field(max_length=64),
+    ] = ()
     last_feedback: Literal[
         "proposal_rejected",
         "mcp_error",

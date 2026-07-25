@@ -439,6 +439,15 @@ class Phase2AgentOrchestrator:
                     reason="The scripted provider response timed out.",
                 )
                 return
+            except Exception:
+                state.last_feedback = "proposal_rejected"
+                await self._apply_fallback(
+                    client,
+                    state,
+                    round_number=max(1, state.rounds_used),
+                    reason="The provider failed to return a valid tool call.",
+                )
+                return
 
             state.rounds_used = round_number
             self._trace(
@@ -1145,6 +1154,10 @@ class Phase2AgentOrchestrator:
             run_id=state.run_id,
             round_number=round_number,
             discovered_tool_names=state.discovered_tool_names,
+            discovered_tool_schemas={
+                name: copy.deepcopy(tool.inputSchema)
+                for name, tool in state.discovered_tools.items()
+            },
             cycle_id=(
                 state.snapshot.cycle_id
                 if state.snapshot is not None
@@ -1176,6 +1189,11 @@ class Phase2AgentOrchestrator:
                 else None
             ),
             last_error_codes=state.last_error_codes,
+            last_action_errors=(
+                state.last_action.errors
+                if state.last_action is not None
+                else ()
+            ),
             last_feedback=state.last_feedback,
             runtime_errors=tuple(
                 RuntimeErrorObservation(
