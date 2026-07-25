@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Verified Eco-Loop EnergyPlus and Ollama comparison results.">
+  <title>Eco-Loop | Verified Results</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <p class="eyebrow">Eco-Loop Building Agents</p>
+      <h1>Verified results, with the comfort trade-off visible.</h1>
+      <p class="lede">
+        A matched 24-hour EnergyPlus comparison supervised hourly by the local
+        <code>llama3.2:3b</code> model through a validated MCP control loop.
+      </p>
+      <div class="hero-actions">
+        <a class="button primary" href="../../runs/final/ollama_24h_comparison.json">Open JSON evidence</a>
+        <a class="button" href="../../runs/final/ollama_24h_comparison.csv">Open CSV evidence</a>
+        <a class="button" href="../ollama_24h_comparison.md">Read report</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section aria-labelledby="headline">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">24-hour real Ollama-supervised hybrid comparison</p>
+          <h2 id="headline">Electricity and peak demand fell</h2>
+        </div>
+        <span class="status">Verified artifact</span>
+      </div>
+
+      <div class="metric-grid">
+        <article class="metric neutral">
+          <p>Baseline electricity</p>
+          <strong>180.556</strong>
+          <span>kWh</span>
+        </article>
+        <article class="metric controlled">
+          <p>Ollama hybrid electricity</p>
+          <strong>168.703</strong>
+          <span>kWh</span>
+        </article>
+        <article class="metric positive">
+          <p>Electricity reduction</p>
+          <strong>11.853</strong>
+          <span>kWh / 6.565%</span>
+        </article>
+        <article class="metric neutral">
+          <p>Baseline peak</p>
+          <strong>17.258</strong>
+          <span>kW</span>
+        </article>
+        <article class="metric controlled">
+          <p>Controlled peak</p>
+          <strong>15.566</strong>
+          <span>kW</span>
+        </article>
+      </div>
+
+      <figure class="chart wide">
+        <img src="../../runs/final/ollama_24h_energy_peak.png" alt="Bar charts comparing baseline and Ollama-hybrid electricity and peak demand.">
+        <figcaption>Matched total electricity and peak demand.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="comfort">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Comfort outcome</p>
+          <h2 id="comfort">Lower energy came with a small PMV trade-off</h2>
+        </div>
+      </div>
+
+      <div class="comparison-table" role="region" aria-label="Comfort comparison" tabindex="0">
+        <table>
+          <thead>
+            <tr>
+              <th>Metric</th>
+              <th>Baseline</th>
+              <th>Ollama hybrid</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th>Occupied PMV compliance</th>
+              <td>96.82%</td>
+              <td>95.45%</td>
+            </tr>
+            <tr>
+              <th>Occupied comfort violations</th>
+              <td>7</td>
+              <td>10</td>
+            </tr>
+            <tr>
+              <th>Zone-temperature range</th>
+              <td>20.63-23.90 C</td>
+              <td>20.00-26.00 C</td>
+            </tr>
+            <tr>
+              <th>PMV range</th>
+              <td>-1.41 to 0.21</td>
+              <td>-1.49 to 0.67</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <aside class="tradeoff">
+        <strong>Honest trade-off</strong>
+        <p>
+          The Ollama-supervised run reduced energy and peak demand, while
+          occupied PMV compliance decreased slightly from 96.82% to 95.45%,
+          with comfort violations increasing from 7 to 10.
+        </p>
+      </aside>
+
+      <figure class="chart wide">
+        <img src="../../runs/final/ollama_24h_comfort.png" alt="Range charts comparing baseline and Ollama-hybrid zone temperature and PMV.">
+        <figcaption>Temperature and Fanger PMV ranges over the matched runs.</figcaption>
+      </figure>
+    </section>
+
+    <section aria-labelledby="agent">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Agent and safety evidence</p>
+          <h2 id="agent">24 hourly decisions reached the validated control path</h2>
+        </div>
+      </div>
+
+      <div class="metric-grid compact">
+        <article class="metric positive">
+          <p>Accepted</p>
+          <strong>24</strong>
+          <span>actions</span>
+        </article>
+        <article class="metric neutral">
+          <p>Rejected</p>
+          <strong>0</strong>
+          <span>actions</span>
+        </article>
+        <article class="metric neutral">
+          <p>Corrected</p>
+          <strong>0</strong>
+          <span>proposals</span>
+        </article>
+        <article class="metric neutral">
+          <p>Fallback</p>
+          <strong>0</strong>
+          <span>actions</span>
+        </article>
+        <article class="metric controlled">
+          <p>Median LLM latency</p>
+          <strong>19.457</strong>
+          <span>seconds</span>
+        </article>
+        <article class="metric controlled">
+          <p>Maximum LLM latency</p>
+          <strong>28.487</strong>
+          <span>seconds</span>
+        </article>
+      </div>
+
+      <p class="supporting">
+        The controlled run recorded 460 successful zone-actuator writes and
+        zero EnergyPlus severe or fatal errors.
+      </p>
+
+      <figure class="chart wide">
+        <img src="../../runs/final/ollama_24h_actions_latency.png" alt="Charts of accepted, rejected, corrected, and fallback actions plus Ollama latency.">
+        <figcaption>Action outcomes and real-provider request latency.</figcaption>
+      </figure>
+    </section>
+
+    <section class="separate" aria-labelledby="deterministic">
+      <p class="eyebrow">Separate evidence class</p>
+      <h2 id="deterministic">Seven-day deterministic controller</h2>
+      <p>
+        The Phase 1 fixed occupied-hours controller reduced electricity from
+        <strong>1,024.291 kWh</strong> to <strong>955.179 kWh</strong>, a
+        <strong>69.112 kWh / 6.747%</strong> reduction over 672 timesteps.
+      </p>
+      <p class="warning">
+        This result was produced by a deterministic controller. It is not an
+        Ollama-generated or real-LLM savings result.
+      </p>
+      <a href="../../runs/final/results_summary.json">Open the separated evidence summary</a>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap footer-row">
+      <p>Eco-Loop verified results dashboard</p>
+      <nav aria-label="Project documentation">
+        <a href="../../README.md">README</a>
+        <a href="../system_architecture.md">Architecture</a>
+        <a href="../final_deliverables.md">Deliverables</a>
+      </nav>
+    </div>
+  </footer>
+</body>
+</html>
