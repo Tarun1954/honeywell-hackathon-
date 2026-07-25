@@ -8,6 +8,7 @@ version = "0.1.0"
 description = "Closed-loop EnergyPlus control proof of concept"
 requires-python = ">=3.12"
 dependencies = [
+    "matplotlib==3.10.8",
     "mcp==1.28.1",
     "pydantic==2.13.4",
     "PyYAML==6.0.3",
