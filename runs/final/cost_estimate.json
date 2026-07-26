@@ -1,0 +1,59 @@
+{
+  "assumptions": {
+    "currency": "USD",
+    "customer_sector": "commercial",
+    "demand_charge_reason": "A 24-hour simulated peak is not a utility billing demand and no specific monthly tariff was selected.",
+    "demand_charge_status": "not_estimated",
+    "demand_charge_usd_per_kw": null,
+    "energy_rate_cents_per_kwh": 15.36,
+    "energy_rate_usd_per_kwh": 0.1536,
+    "geography": "Illinois",
+    "observation_period": "May 2026",
+    "rate_type": "statewide_monthly_average_retail_price_proxy",
+    "source_name": "U.S. Energy Information Administration",
+    "source_publication_date": "2026-07-23",
+    "source_table": "Electric Power Monthly Table 5.6.A, Average Price of Electricity to Ultimate Customers by End-Use Sector, by State",
+    "source_url": "https://www.eia.gov/electricity/monthly/epm_table_grapher.php?t=epmt_5_6_a"
+  },
+  "demand_cost_estimate": {
+    "baseline_usd": null,
+    "controlled_usd": null,
+    "demand_charge_usd_per_kw": null,
+    "reason": "A 24-hour simulated peak is not a utility billing demand and no specific monthly tariff was selected.",
+    "savings_usd": null,
+    "status": "not_estimated"
+  },
+  "disclaimer": "This is a simulated cost estimate based on a statewide average commercial retail-price proxy and verified 24-hour EnergyPlus results. It is not an actual tariff calculation or utility bill.",
+  "energy_cost_estimate": {
+    "baseline_usd": 27.733357,
+    "controlled_usd": 25.912745,
+    "savings_percent": 6.564699,
+    "savings_usd": 1.820612
+  },
+  "estimate_label": "Simulated 24-hour electricity cost estimate; not an actual utility bill",
+  "evidence_class": "offline_post_processing",
+  "input_evidence": {
+    "comparison_label": "24-hour real Ollama-supervised hybrid comparison",
+    "duration_hours": 24,
+    "path": "runs/final/ollama_24h_comparison.json",
+    "sha256": "0936615d685cb3896d1b2dfa5cdb192a169a68cd6a9febf7830430d9ae01ba45",
+    "timestep_count": 96
+  },
+  "schema_version": "eco-loop.cost-estimate.v1",
+  "simulation_rerun": false,
+  "status": "completed",
+  "total_cost_estimate": {
+    "baseline_usd": 27.733357,
+    "controlled_usd": 25.912745,
+    "savings_percent": 6.564699,
+    "savings_usd": 1.820612,
+    "scope": "energy_only; demand charges excluded"
+  },
+  "verified_energy_and_demand": {
+    "baseline_electricity_kwh": 180.555709,
+    "baseline_peak_kw": 17.258125,
+    "controlled_electricity_kwh": 168.702769,
+    "controlled_peak_kw": 15.566364,
+    "electricity_reduction_kwh": 11.85294
+  }
+}

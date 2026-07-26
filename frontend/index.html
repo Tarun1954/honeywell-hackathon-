@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta
+    name="description"
+    content="Read-only Eco-Loop EnergyPlus, MCP, and Ollama monitoring dashboard."
+  >
+  <title>Eco-Loop Control Observatory</title>
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#overview" aria-label="Eco-Loop home">
+        <span class="brand-mark" aria-hidden="true">E</span>
+        <span>
+          <strong>Eco-Loop</strong>
+          <small>Control Observatory</small>
+        </span>
+      </a>
+
+      <nav class="nav" aria-label="Dashboard sections">
+        <button class="nav-item active" data-page="overview">
+          <span aria-hidden="true">01</span> Overview
+        </button>
+        <button class="nav-item" data-page="live">
+          <span aria-hidden="true">02</span> Live Loop
+        </button>
+        <button class="nav-item" data-page="results">
+          <span aria-hidden="true">03</span> Results
+        </button>
+        <button class="nav-item" data-page="cost">
+          <span aria-hidden="true">04</span> Cost Estimate
+        </button>
+        <button class="nav-item" data-page="evidence">
+          <span aria-hidden="true">05</span> Evidence
+        </button>
+      </nav>
+
+      <div class="sidebar-note">
+        <span class="pulse-dot"></span>
+        <div>
+          <strong>Read-only boundary</strong>
+          <p>No control or setpoint input is exposed.</p>
+        </div>
+      </div>
+    </aside>
+
+    <div class="workspace">
+      <header class="topbar">
+        <div>
+          <p class="kicker">Honeywell Hackathon / Building Intelligence</p>
+          <h1>EnergyPlus control evidence, without control access.</h1>
+        </div>
+        <div class="topbar-status">
+          <span class="status-chip safe"><i></i> Safety boundary active</span>
+          <span class="status-chip" id="connectionStatus"><i></i> Loading evidence</span>
+        </div>
+      </header>
+
+      <section class="control-strip" aria-label="Dashboard inputs">
+        <label>
+          <span>View mode</span>
+          <select id="viewMode">
+            <option value="replay">Saved evidence</option>
+            <option value="live">Live monitoring</option>
+          </select>
+        </label>
+        <label>
+          <span>Run selection</span>
+          <select id="runSelection">
+            <option value="ollama_24h_comparison">24-hour Ollama comparison</option>
+            <option value="phase1_deterministic">7-day deterministic comparison</option>
+            <option value="cost_estimate">Cost estimate</option>
+          </select>
+        </label>
+        <label>
+          <span>Evidence date</span>
+          <select id="evidenceDate">
+            <option value="">All available dates</option>
+          </select>
+        </label>
+        <button class="button secondary" id="replayButton">Replay verified evidence</button>
+        <button class="button primary" id="demoButton">Start demo</button>
+        <p class="mode-note" id="modeNote">
+          Replays a verified artifact. It does not start EnergyPlus or Ollama.
+        </p>
+      </section>
+
+      <main>
+        <section class="page active" id="page-overview">
+          <div class="page-heading">
+            <div>
+              <p class="kicker">System overview</p>
+              <h2>A guarded loop with auditable outcomes.</h2>
+            </div>
+            <span class="evidence-badge">Verified 24-hour artifact</span>
+          </div>
+
+          <div class="metric-grid">
+            <article class="metric-card energy">
+              <span>Baseline electricity</span>
+              <strong id="baselineEnergy">--</strong>
+              <small>kWh / 24 hours</small>
+            </article>
+            <article class="metric-card controlled">
+              <span>Ollama hybrid</span>
+              <strong id="controlledEnergy">--</strong>
+              <small>kWh / 24 hours</small>
+            </article>
+            <article class="metric-card savings">
+              <span>Energy reduction</span>
+              <strong id="energyReduction">--</strong>
+              <small id="energyReductionPercent">--</small>
+            </article>
+            <article class="metric-card peak">
+              <span>Peak reduction</span>
+              <strong id="peakReduction">--</strong>
+              <small>kW avoided</small>
+            </article>
+          </div>
+
+          <div class="overview-grid">
+            <article class="panel architecture-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="kicker">Architecture</p>
+                  <h3>Sensor-to-actuator path</h3>
+                </div>
+                <span class="mini-chip">Hourly decision</span>
+              </div>
+              <div class="architecture-flow" aria-label="System architecture flow">
+                <div class="flow-node">
+                  <span>01</span>
+                  <strong>EnergyPlus</strong>
+                  <small>15-minute sensors</small>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-node">
+                  <span>02</span>
+                  <strong>MCP tools</strong>
+                  <small>Structured context</small>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-node">
+                  <span>03</span>
+                  <strong>Ollama</strong>
+                  <small>llama3.2:3b</small>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-node guarded">
+                  <span>04</span>
+                  <strong>Validation</strong>
+                  <small>Fail-closed safety</small>
+                </div>
+                <div class="flow-arrow" aria-hidden="true">→</div>
+                <div class="flow-node">
+                  <span>05</span>
+                  <strong>Actuators</strong>
+                  <small>Four-step hold</small>
+                </div>
+              </div>
+            </article>
+
+            <article class="panel health-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="kicker">Run integrity</p>
+                  <h3>EnergyPlus health</h3>
+                </div>
+              </div>
+              <div class="health-row">
+                <span>Exit status</span>
+                <strong id="exitStatus">--</strong>
+              </div>
+              <div class="health-row">
+                <span>Severe errors</span>
+                <strong id="severeErrors">--</strong>
+              </div>
+              <div class="health-row">
+                <span>Fatal errors</span>
+                <strong id="fatalErrors">--</strong>
+              </div>
+              <div class="health-row">
+                <span>Actuator zone writes</span>
+                <strong id="actuatorWrites">--</strong>
+              </div>
+            </article>
+          </div>
+
+          <aside class="tradeoff">
+            <span>Comfort trade-off</span>
+            <p>
+              Energy and peak demand decreased, while occupied PMV compliance
+              moved from <strong>96.82%</strong> to <strong>95.45%</strong> and
+              comfort violations increased from <strong>7</strong> to
+              <strong>10</strong>.
+            </p>
+          </aside>
+        </section>
+
+        <section class="page" id="page-live">
+          <div class="page-heading">
+            <div>
+              <p class="kicker">Closed-loop trace</p>
+              <h2>What the agent saw and what reached EnergyPlus.</h2>
+            </div>
+            <span class="evidence-badge" id="liveEvidenceBadge">Saved evidence</span>
+          </div>
+
+          <div class="timeline-toolbar">
+            <button class="icon-button" id="previousEvent" aria-label="Previous timestep">←</button>
+            <div class="timeline-track">
+              <div class="timeline-progress" id="timelineProgress"></div>
+            </div>
+            <button class="icon-button" id="nextEvent" aria-label="Next timestep">→</button>
+            <span id="timelineCount">0 / 0</span>
+          </div>
+
+          <div class="live-grid">
+            <article class="panel sensor-panel">
+              <div class="panel-heading">
+                <div>
+                  <p class="kicker">Sensor snapshot</p>
+                  <h3 id="snapshotTimestamp">No evidence selected</h3>
+                </div>
+                <span class="mini-chip" id="snapshotId">--</span>
+              </div>
+              <div class="sensor-summary">
+                <div>
+                  <span>Facility demand</span>
+                  <strong id="facilityDemand">--</strong>
+                </div>
+                <div>
+                  <span>Energy since start</span>
+                  <strong id="facilityEnergy">--</strong>
+                </div>
+                <div>
+                  <span>Occupied zones</span>
+                  <strong id="occupiedZones">--</strong>
+                </div>
+              </div>
+              <div class="zone-table-wrap">
+                <table class="zone-table">
+                  <thead>
+                    <tr>
+                      <th>Zone</th>
+                      <th>Temperature</th>
+                      <th>PMV</th>
+                      <th>Occupancy</th>
+                      <th>Heat / cool</th>
+                    </tr>
+                  </thead>
+                  <tbody id="zoneRows"></tbody>
+                </table>
+              </div>
+            </article>
+
+            <div class="live-side">
+              <article class="panel agent-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="kicker">Agent decision</p>
+                    <h3 id="decisionSummary">Awaiting evidence</h3>
+                  </div>
+                  <span class="action-status" id="actionStatus">--</span>
+                </div>
+                <dl class="decision-list">
+                  <div>
+                    <dt>Provider</dt>
+                    <dd id="providerName">--</dd>
+                  </div>
+                  <div>
+                    <dt>Fallback</dt>
+                    <dd id="fallbackUsed">--</dd>
+                  </div>
+                  <div>
+                    <dt>Corrections</dt>
+                    <dd id="correctionCount">--</dd>
+                  </div>
+                  <div>
+                    <dt>Actuator write</dt>
+                    <dd id="writeResult">--</dd>
+                  </div>
+                </dl>
+              </article>
+
+              <article class="panel tool-panel">
+                <div class="panel-heading">
+                  <div>
+                    <p class="kicker">MCP trace</p>
+                    <h3>Tools called this timestep</h3>
+                  </div>
+                </div>
+                <div class="tool-list" id="toolList">
+                  <span class="empty-state">No MCP call at this timestep</span>
+                </div>
+              </article>
+            </div>
+          </div>
+        </section>
+
+        <section class="page" id="page-results">
+          <div class="page-heading">
+            <div>
+              <p class="kicker">Quantitative results</p>
+              <h2>Energy, comfort, and action evidence.</h2>
+            </div>
+            <span class="evidence-badge">Real Ollama-supervised hybrid</span>
+          </div>
+
+          <div class="comparison-grid">
+            <article class="comparison-card">
+              <span>Electricity</span>
+              <div><strong>180.556</strong><small>Baseline kWh</small></div>
+              <div><strong>168.703</strong><small>Controlled kWh</small></div>
+              <b>↓ 6.565%</b>
+            </article>
+            <article class="comparison-card">
+              <span>Peak demand</span>
+              <div><strong>17.258</strong><small>Baseline kW</small></div>
+              <div><strong>15.566</strong><small>Controlled kW</small></div>
+              <b>↓ 1.692 kW</b>
+            </article>
+            <article class="comparison-card comfort">
+              <span>Occupied PMV compliance</span>
+              <div><strong>96.82%</strong><small>Baseline</small></div>
+              <div><strong>95.45%</strong><small>Controlled</small></div>
+              <b>Trade-off: −1.37 points</b>
+            </article>
+            <article class="comparison-card comfort">
+              <span>Comfort violations</span>
+              <div><strong>7</strong><small>Baseline</small></div>
+              <div><strong>10</strong><small>Controlled</small></div>
+              <b>Trade-off: +3 samples</b>
+            </article>
+          </div>
+
+          <div class="chart-grid">
+            <figure class="panel chart-panel">
+              <img src="/assets/ollama-energy-peak.png" alt="Energy and peak-demand comparison chart">
+              <figcaption>Matched 24-hour electricity and peak demand.</figcaption>
+            </figure>
+            <figure class="panel chart-panel">
+              <img src="/assets/ollama-comfort.png" alt="Temperature and PMV comparison chart">
+              <figcaption>Zone-temperature and PMV ranges.</figcaption>
+            </figure>
+            <figure class="panel chart-panel wide">
+              <img src="/assets/ollama-actions-latency.png" alt="Agent action and latency chart">
+              <figcaption>Accepted actions, fallback count, and LLM latency.</figcaption>
+            </figure>
+          </div>
+
+          <article class="panel separate-result">
+            <p class="kicker">Separate evidence class</p>
+            <h3>Seven-day deterministic controller</h3>
+            <p>
+              Electricity fell from <strong>1,024.291 kWh</strong> to
+              <strong>955.179 kWh</strong>: a
+              <strong>69.112 kWh / 6.747%</strong> reduction.
+            </p>
+            <p>
+              This is deterministic Phase 1 evidence. It is not an Ollama or
+              real-LLM savings result.
+            </p>
+          </article>
+        </section>
+
+        <section class="page" id="page-cost">
+          <div class="page-heading">
+            <div>
+              <p class="kicker">Offline post-processing</p>
+              <h2>A transparent simulated cost estimate.</h2>
+            </div>
+            <span class="evidence-badge amber">Not a utility bill</span>
+          </div>
+
+          <div class="cost-hero">
+            <article>
+              <span>Baseline estimate</span>
+              <strong id="baselineCost">--</strong>
+              <small>24-hour energy only</small>
+            </article>
+            <div class="cost-arrow">→</div>
+            <article class="controlled-cost">
+              <span>Controlled estimate</span>
+              <strong id="controlledCost">--</strong>
+              <small>24-hour energy only</small>
+            </article>
+            <div class="cost-savings">
+              <span>Simulated savings</span>
+              <strong id="costSavings">--</strong>
+              <small id="costSavingsPercent">--</small>
+            </div>
+          </div>
+
+          <div class="cost-grid">
+            <article class="panel">
+              <p class="kicker">Tariff assumption</p>
+              <h3 id="tariffRate">--</h3>
+              <dl class="assumption-list">
+                <div><dt>Geography</dt><dd id="tariffGeography">--</dd></div>
+                <div><dt>Sector</dt><dd id="tariffSector">--</dd></div>
+                <div><dt>Observation</dt><dd id="tariffPeriod">--</dd></div>
+                <div><dt>Demand charge</dt><dd>Not estimated</dd></div>
+              </dl>
+            </article>
+            <article class="panel disclaimer-panel">
+              <p class="kicker">Required interpretation</p>
+              <h3>Simulated estimate only</h3>
+              <p id="costDisclaimer">
+                Loading the documented assumption and disclaimer.
+              </p>
+              <a id="tariffSource" href="#" target="_blank" rel="noreferrer">
+                Open the documented tariff source
+              </a>
+            </article>
+          </div>
+        </section>
+
+        <section class="page" id="page-evidence">
+          <div class="page-heading">
+            <div>
+              <p class="kicker">Evidence library</p>
+              <h2>Approved artifacts, ready to inspect.</h2>
+            </div>
+            <span class="evidence-badge">Fixed allowlist</span>
+          </div>
+          <div class="evidence-notice">
+            <strong>Read-only evidence access</strong>
+            <p>
+              Downloads are restricted to the verified JSON and CSV artifacts
+              listed below. Arbitrary filesystem paths and <code>.env</code>
+              are never exposed.
+            </p>
+          </div>
+          <div class="evidence-list" id="evidenceList"></div>
+        </section>
+      </main>
+
+      <footer>
+        <span>Eco-Loop Control Observatory</span>
+        <span>Read-only frontend · No direct setpoint control</span>
+      </footer>
+    </div>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>

@@ -1,0 +1,26 @@
+section,metric,value,unit
+metadata,estimate_label,Simulated 24-hour electricity cost estimate; not an actual utility bill,
+metadata,simulation_rerun,False,
+assumption,energy_rate_cents_per_kwh,15.36,cents/kWh
+assumption,energy_rate_usd_per_kwh,0.1536,USD/kWh
+assumption,geography,Illinois,
+assumption,customer_sector,commercial,
+assumption,observation_period,May 2026,
+assumption,source_publication_date,2026-07-23,
+assumption,source_name,U.S. Energy Information Administration,
+assumption,source_url,https://www.eia.gov/electricity/monthly/epm_table_grapher.php?t=epmt_5_6_a,
+energy,baseline_electricity_kwh,180.555709,kWh
+energy,controlled_electricity_kwh,168.702769,kWh
+energy,electricity_reduction_kwh,11.85294,kWh
+peak,baseline_peak_kw,17.258125,kW
+peak,controlled_peak_kw,15.566364,kW
+energy_cost,baseline_usd,27.733357,USD
+energy_cost,controlled_usd,25.912745,USD
+energy_cost,savings_usd,1.820612,USD
+energy_cost,savings_percent,6.564699,%
+demand_cost,status,not_estimated,
+demand_cost,demand_charge_usd_per_kw,,USD/kW
+demand_cost,baseline_usd,,USD
+demand_cost,controlled_usd,,USD
+demand_cost,savings_usd,,USD
+disclaimer,text,This is a simulated cost estimate based on a statewide average commercial retail-price proxy and verified 24-hour EnergyPlus results. It is not an actual tariff calculation or utility bill.,
