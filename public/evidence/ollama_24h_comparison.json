@@ -1,0 +1,107 @@
+{
+  "baseline_comfort": {
+    "occupied_comfort_violation_count": 7,
+    "occupied_pmv_compliance_percent": 96.81818181818181,
+    "occupied_pmv_compliant_count": 213,
+    "occupied_zone_samples": 220,
+    "pmv_compliance_limit": 0.7,
+    "pmv_range": {
+      "maximum": 0.2083948859139497,
+      "minimum": -1.411943817729232
+    },
+    "zone_temperature_c_range": {
+      "maximum": 23.899817669868348,
+      "minimum": 20.632674887675066
+    }
+  },
+  "comparison_label": "24-hour real Ollama-supervised hybrid comparison",
+  "control_actions": {
+    "actions_rejected": 0,
+    "corrected_action_proposals": 0,
+    "fallback_count": 0,
+    "hourly_decision_count": 24,
+    "llm_request_count": 97,
+    "maximum_llm_latency_seconds": 28.487,
+    "median_llm_latency_seconds": 19.457,
+    "real_actions_accepted": 24,
+    "successful_actuator_timestep_writes": 92,
+    "successful_actuator_zone_writes": 460
+  },
+  "controlled_comfort": {
+    "occupied_comfort_violation_count": 10,
+    "occupied_pmv_compliance_percent": 95.45454545454545,
+    "occupied_pmv_compliant_count": 210,
+    "occupied_zone_samples": 220,
+    "pmv_compliance_limit": 0.7,
+    "pmv_range": {
+      "maximum": 0.668940270787071,
+      "minimum": -1.490463459667233
+    },
+    "zone_temperature_c_range": {
+      "maximum": 25.998856281519107,
+      "minimum": 20.00005271688738
+    }
+  },
+  "duration_hours": 24,
+  "electricity": {
+    "absolute_difference_kwh": 11.852939691411109,
+    "baseline_total_kwh": 180.55570880622525,
+    "controlled_minus_baseline_kwh": -11.852939691411109,
+    "controlled_total_kwh": 168.70276911481415,
+    "difference_sign_convention": "negative means controlled used less electricity",
+    "percentage_difference_from_baseline": -6.564699487919176
+  },
+  "energyplus": {
+    "baseline": {
+      "exit_status": 0,
+      "fatal_count": 0,
+      "output_directory": "D:\\honeywell_hackathon\\runs\\phase1\\ollama-24h-baseline-20260725T210603443448Z",
+      "severe_count": 0
+    },
+    "controlled": {
+      "exit_status": 0,
+      "fatal_count": 0,
+      "output_directory": "D:\\honeywell_hackathon\\runs\\phase1\\ollama-24h-controlled-20260725T210603443448Z",
+      "severe_count": 0
+    }
+  },
+  "evidence_class": "real_ollama_supervised_hybrid",
+  "matched_conditions": {
+    "baseline_control": "original EnergyPlus control; no LLM actions",
+    "configured_run_period_end": [
+      7,
+      27
+    ],
+    "controlled_control": "hourly real Ollama supervision with four-timestep hold, MCP safety validation, and deterministic fallback",
+    "model_path": "D:\\honeywell_hackathon\\models\\baseline.idf",
+    "same_initial_snapshot": true,
+    "same_model": true,
+    "same_run_period_start": [
+      7,
+      21
+    ],
+    "same_timestep": true,
+    "same_weather": true,
+    "weather_path": "D:\\honeywell_hackathon\\weather\\USA_IL_Chicago-OHare.Intl.AP.725300_TMY3.epw"
+  },
+  "model": "llama3.2:3b",
+  "peak_demand": {
+    "baseline_w": 17258.12541489085,
+    "controlled_w": 15566.363522595775
+  },
+  "provider": "OllamaToolProvider",
+  "separate_existing_result": {
+    "energy_reduction_percent": 6.7473173222510106,
+    "included_in_this_comparison": false,
+    "label": "Phase 1 deterministic seven-day comparison",
+    "note": "The seven-day 6.747% result is deterministic Phase 1 evidence and is not a real-LLM result."
+  },
+  "source_artifacts": {
+    "baseline_timesteps": "D:\\honeywell_hackathon\\runs\\phase1\\ollama-24h-baseline-20260725T210603443448Z\\timesteps.jsonl",
+    "controlled_timesteps": "D:\\honeywell_hackathon\\runs\\phase1\\ollama-24h-controlled-20260725T210603443448Z\\timesteps.jsonl",
+    "live_agent_timesteps": "D:\\honeywell_hackathon\\runs\\phase1\\ollama-24h-comparison-artifacts-20260725T210603443448Z\\live_agent_timesteps.jsonl"
+  },
+  "status": "completed",
+  "timestep_count": 96,
+  "timestep_minutes": 15
+}

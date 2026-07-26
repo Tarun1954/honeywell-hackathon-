@@ -12,11 +12,17 @@ htmlcov/
 .mypy_cache/
 .ruff_cache/
 .pytest_cache/
+node_modules/
+.next/
+.open-next/
+.wrangler/
+npm-debug.log*
 
 # Local configuration and credentials
 .env
 .env.*
 !.env.example
+.dev.vars
 
 # Local EnergyPlus installation and download staging
 .tools/
