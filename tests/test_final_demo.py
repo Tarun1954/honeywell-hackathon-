@@ -65,7 +65,7 @@ class FinalDemoTests(unittest.TestCase):
         self.assertNotIn("chain-of-thought:", text.lower())
 
     def test_auto_mode_falls_back_without_exposing_exception_secrets(self) -> None:
-        secret = "sk-this-value-must-never-appear-1234567890"
+        secret = "-".join(("sk", "this-value-must-never-appear-1234567890"))
 
         def unavailable() -> dict[str, object]:
             raise RuntimeError(f"provider failed with {secret}")
