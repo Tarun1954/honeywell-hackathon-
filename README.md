@@ -14,6 +14,16 @@ five-zone command. Only accepted actions reach the existing EnergyPlus EMS
 actuators; provider failure releases those actuators back to the original
 EnergyPlus schedules.
 
+## Live dashboard
+
+The verified, read-only results dashboard is deployed at:
+
+**[Open the Eco-Loop production dashboard](https://eco-loop-honeywell-tarun.pnvtarun.chatgpt.site)**
+
+It presents the checked-in 24-hour comparison, comfort trade-off, safety
+bounds, and downloadable JSON/CSV evidence. The deployed dashboard does not
+control a live building or mutate simulation state.
+
 ## Final architecture
 
 ```text
