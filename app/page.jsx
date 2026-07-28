@@ -1,5 +1,7 @@
 import comparison from "../runs/final/ollama_24h_comparison.json";
 
+export const dynamic = "force-static";
+
 const format = (value, digits = 3) =>
   Number(value).toLocaleString("en-US", {
     minimumFractionDigits: digits,
