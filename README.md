@@ -26,7 +26,7 @@ control a live building or mutate simulation state.
 
 ## Run the results dashboard locally
 
-Install Node.js 20.9 or newer, then run:
+Install Node.js 22 or newer, then run:
 
 ```powershell
 npm ci

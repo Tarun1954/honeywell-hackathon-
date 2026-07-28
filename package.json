@@ -2,12 +2,14 @@
   "name": "eco-loop-results-site",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
-    "start": "python -m http.server 3000 --directory dist",
-    "preview": "npm run build && npm start",
-    "sites:build": "next build"
+    "build": "vinext build && node scripts/prepare_sites_output.mjs",
+    "build:next": "next build",
+    "start": "vinext start",
+    "preview": "npm run build && vinext start",
+    "sites:build": "npm run build"
   },
   "dependencies": {
     "next": "16.2.12",
@@ -17,5 +19,12 @@
   "overrides": {
     "postcss": "8.5.23",
     "sharp": "0.35.3"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^6.0.4",
+    "@vitejs/plugin-rsc": "^0.5.32",
+    "react-server-dom-webpack": "^19.2.8",
+    "vinext": "^1.0.0-beta.4",
+    "vite": "^8.1.5"
   }
 }
