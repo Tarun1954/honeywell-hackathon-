@@ -18,7 +18,7 @@ EnergyPlus schedules.
 
 The verified, read-only results dashboard is deployed at:
 
-**[Open the Eco-Loop production dashboard](https://eco-loop-honeywell-tarun.pnvtarun.chatgpt.site)**
+**[Open the Eco-Loop production dashboard](https://tarun1954.github.io/honeywell-hackathon-/)**
 
 It presents the checked-in 24-hour comparison, comfort trade-off, safety
 bounds, and downloadable JSON/CSV evidence. The deployed dashboard does not
