@@ -2,6 +2,8 @@ import comparison from "../runs/final/ollama_24h_comparison.json";
 
 export const dynamic = "force-static";
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 const format = (value, digits = 3) =>
   Number(value).toLocaleString("en-US", {
     minimumFractionDigits: digits,
@@ -66,7 +68,7 @@ export default function Home() {
             </a>
             <a
               className="button secondary"
-              href="/evidence/ollama_24h_comparison.json"
+              href={`${basePath}/evidence/ollama_24h_comparison.json`}
             >
               Inspect JSON evidence
             </a>
@@ -144,7 +146,7 @@ export default function Home() {
               <h3>Matched 24-hour outcome</h3>
             </div>
             <img
-              src="/evidence/ollama_24h_energy_peak.png"
+              src={`${basePath}/evidence/ollama_24h_energy_peak.png`}
               alt="Bar charts comparing baseline and Ollama-hybrid electricity and peak demand."
             />
           </figure>
@@ -154,7 +156,7 @@ export default function Home() {
               <h3>The trade-off stays visible</h3>
             </div>
             <img
-              src="/evidence/ollama_24h_comfort.png"
+              src={`${basePath}/evidence/ollama_24h_comfort.png`}
               alt="Range charts comparing baseline and Ollama-hybrid temperature and PMV."
             />
           </figure>
@@ -232,17 +234,17 @@ export default function Home() {
           </p>
         </div>
         <div className="evidence-grid">
-          <a href="/evidence/ollama_24h_comparison.json">
+          <a href={`${basePath}/evidence/ollama_24h_comparison.json`}>
             <span>01</span>
             <strong>Comparison JSON</strong>
             <small>Machine-readable metrics ↗</small>
           </a>
-          <a href="/evidence/ollama_24h_comparison.csv">
+          <a href={`${basePath}/evidence/ollama_24h_comparison.csv`}>
             <span>02</span>
             <strong>Comparison CSV</strong>
             <small>Tabular evidence ↗</small>
           </a>
-          <a href="/evidence/results_summary.json">
+          <a href={`${basePath}/evidence/results_summary.json`}>
             <span>03</span>
             <strong>Evidence summary</strong>
             <small>Separated evidence classes ↗</small>
