@@ -24,6 +24,23 @@ It presents the checked-in 24-hour comparison, comfort trade-off, safety
 bounds, and downloadable JSON/CSV evidence. The deployed dashboard does not
 control a live building or mutate simulation state.
 
+## Run the results dashboard locally
+
+Install Node.js 20.9 or newer, then run:
+
+```powershell
+npm ci
+npm run dev
+```
+
+Open <http://localhost:3000>. To verify the same optimized build used for
+deployment, run:
+
+```powershell
+npm run build
+npm start
+```
+
 ## Final architecture
 
 ```text

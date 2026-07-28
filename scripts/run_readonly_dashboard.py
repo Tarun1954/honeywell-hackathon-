@@ -472,6 +472,17 @@ class ReadOnlyDashboardHandler(BaseHTTPRequestHandler):
         self._handle_get(head_only=True)
 
     def _reject_mutation(self) -> None:
+        # Drain a bounded request body before replying. On Windows, closing a
+        # socket with unread request data can reset the connection before the
+        # client receives the intended 405 response.
+        try:
+            content_length = int(self.headers.get("Content-Length", "0"))
+        except ValueError:
+            content_length = 0
+        if 0 < content_length <= 1_048_576:
+            self.rfile.read(content_length)
+        elif content_length > 1_048_576:
+            self.close_connection = True
         self._send_json(
             {
                 "error": "read_only_dashboard",
