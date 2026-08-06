@@ -325,5 +325,6 @@ source files.
   validation.
 
 The [final deliverables checklist](docs/final_deliverables.md) identifies the
-completed repository artifacts and honestly marks the video and presentation
-as pending.
+completed repository artifacts. The video and presentation were submitted
+separately through the assessment portal and are intentionally not stored in
+this repository.

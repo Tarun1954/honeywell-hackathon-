@@ -2,7 +2,8 @@
 
 This directory gathers the required building-model, result, and documentation
 deliverables without presenting runtime API control as a permanently modified
-IDF. It intentionally does not contain a final ZIP, video, or presentation.
+IDF. The video and presentation were submitted separately through the
+assessment portal and are intentionally not duplicated in this repository.
 
 ## Hackathon deliverable mapping
 
@@ -24,8 +25,8 @@ IDF. It intentionally does not contain a final ZIP, video, or presentation.
 | PNG charts | Complete | `submission/results/ollama_24h_energy_peak.png`, `submission/results/ollama_24h_comfort.png`, `submission/results/ollama_24h_actions_latency.png`, `submission/results/energy_comparison.png`, `submission/results/zone_temperature_pmv.png`, and `submission/results/action_setpoint_evidence.png` |
 | Architecture document | Complete | `submission/docs/system_architecture.md` |
 | Quantitative results documents | Complete | `submission/docs/current_results.md`, `submission/docs/ollama_24h_comparison.md`, and `submission/docs/phase1_report.md` |
-| Demo video | Pending; planned output not yet created | `submission/video/eco_loop_demo.mp4` (planned), with `submission/video/VIDEO_PENDING.md` as the current placeholder |
-| Presentation | Pending placeholder only | `submission/presentation/PRESENTATION_PENDING.md` |
+| Demo video | Submitted separately | Assessment portal; intentionally not stored in this repository |
+| Presentation | Submitted separately | Assessment portal; intentionally not stored in this repository |
 | GitHub repository | Available | `https://github.com/Tarun1954/honeywell-hackathon-` |
 
 ## Model statement
@@ -63,5 +64,5 @@ controller and is not claimed as an Ollama result.
 
 ## Packaging status
 
-Do not create the final ZIP yet. The video and presentation are still pending,
-and their placeholders must be replaced before final packaging.
+The repository-side submission package is complete. The video and presentation
+were submitted separately through the assessment portal.

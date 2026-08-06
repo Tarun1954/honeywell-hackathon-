@@ -26,8 +26,9 @@ Status reflects repository contents at this documentation checkpoint.
 - [x] Project README: [`README.md`](../README.md)
 - [x] Architecture report:
   [`docs/system_architecture.md`](system_architecture.md)
-- [ ] Video: pending; deliberately not created during the documentation task
-- [ ] Presentation: pending; deliberately not created during the documentation
-  task
+- [x] Video: submitted separately through the assessment portal; intentionally
+  not stored in this repository
+- [x] Presentation: submitted separately through the assessment portal;
+  intentionally not stored in this repository
 - [x] GitHub URL:
   [github.com/Tarun1954/honeywell-hackathon-](https://github.com/Tarun1954/honeywell-hackathon-)

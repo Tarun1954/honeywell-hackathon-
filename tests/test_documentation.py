@@ -166,10 +166,12 @@ class FinalDocumentationTests(unittest.TestCase):
         ):
             _assert_markdown_paths_exist(self, path)
 
-    def test_unproduced_media_are_marked_pending(self) -> None:
+    def test_separately_submitted_media_are_marked_complete(self) -> None:
         text = DELIVERABLES.read_text(encoding="utf-8")
-        self.assertIn("- [ ] Video: pending", text)
-        self.assertIn("- [ ] Presentation: pending", text)
+        self.assertIn("- [x] Video: submitted separately", text)
+        self.assertIn("- [x] Presentation: submitted separately", text)
+        self.assertNotIn("Video: pending", text)
+        self.assertNotIn("Presentation: pending", text)
 
 
 if __name__ == "__main__":

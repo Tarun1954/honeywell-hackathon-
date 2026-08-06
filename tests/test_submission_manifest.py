@@ -193,8 +193,6 @@ class SubmissionManifestTests(unittest.TestCase):
             "submission/dashboard/index.html",
             "submission/docs/system_architecture.md",
             "submission/results/ollama_24h_comparison.json",
-            "submission/video/VIDEO_PENDING.md",
-            "submission/presentation/PRESENTATION_PENDING.md",
         )
         for relative in expected_paths:
             self.assertIn(relative, text)
@@ -204,7 +202,15 @@ class SubmissionManifestTests(unittest.TestCase):
             "https://github.com/Tarun1954/honeywell-hackathon-",
             text,
         )
-        self.assertIn("Do not create the final ZIP yet", text)
+        self.assertIn("Demo video | Submitted separately", text)
+        self.assertIn("Presentation | Submitted separately", text)
+        self.assertIn("repository-side submission package is complete", text)
+        self.assertFalse(
+            (SUBMISSION / "video" / "VIDEO_PENDING.md").exists()
+        )
+        self.assertFalse(
+            (SUBMISSION / "presentation" / "PRESENTATION_PENDING.md").exists()
+        )
         self.assertEqual([], list(SUBMISSION.rglob("*.zip")))
 
     def test_submission_document_and_dashboard_links_resolve(self) -> None:
